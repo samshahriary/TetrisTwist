@@ -15,7 +15,8 @@
 #include <chrono>         // chrono::seconds
 
 using namespace std;
-
+const int GxSIZE = 15;
+const int GySIZE = 18;
 
 void DisplayTitleScreen()
 {
@@ -48,45 +49,45 @@ void DisplayTitleScreen()
     return;
 }
 
-int FindSmallestX(vector< vector < pair<int, int> > > PiecePatterns, int RandomPieceNum)        //function to find smallest x value on piece so we dont move left off map
+int FindSmallestX(vector < pair<int, int> > Gameboard)        //function to find smallest x value on piece so we dont move left off map
 {
-    int smll = PiecePatterns[RandomPieceNum][0].second;
+    int smll = Gameboard[0].second;
     
-    for(int i = 1; i <PiecePatterns[RandomPieceNum].size(); i++)
+    for(int i = 1; i <Gameboard.size(); i++)
     {
-        if(PiecePatterns[RandomPieceNum][i].second < smll)
+        if(Gameboard[i].second < smll)
         {
-            smll = PiecePatterns[RandomPieceNum][i].second;
+            smll = Gameboard[i].second;
         }
     }
     
     return smll;                                                                                //smll can now be used to compare with far left side of map when trying to move left
 }
 
-int FindLargestX(vector< vector < pair<int, int> > > PiecePatterns, int RandomPieceNum)         //function to find largest x value on piece so we dont move right off map
+int FindLargestX(vector < pair<int, int> > Gameboard)         //function to find largest x value on piece so we dont move right off map
 {
-    int lrg = PiecePatterns[RandomPieceNum][0].second;
+    int lrg = Gameboard[0].second;
     
-    for(int i = 1; i < PiecePatterns[RandomPieceNum].size(); i++)
+    for(int i = 1; i < Gameboard.size(); i++)
     {
-        if(PiecePatterns[RandomPieceNum][i].second > lrg)
+        if(Gameboard[i].second > lrg)
         {
-            lrg = PiecePatterns[RandomPieceNum][i].second;
+            lrg = Gameboard[i].second;
         }
     }
     
     return lrg;                                                                                 //lrg can now be used to compare with far right side of map when trying to move right
 }
 
-int FindLargestY(vector< vector < pair<int, int> > > PiecePatterns, int RandomPieceNum)
+int FindLargestY(vector < pair<int, int> > Gameboard)
 {
-    int lrg = PiecePatterns[RandomPieceNum][0].first;
+    int lrg = Gameboard[0].first;
     
-    for(int i = 1; i < PiecePatterns[RandomPieceNum].size(); i++)
+    for(int i = 1; i < Gameboard.size(); i++)
     {
-        if(PiecePatterns[RandomPieceNum][i].first > lrg)
+        if(Gameboard[i].first > lrg)
         {
-            lrg = PiecePatterns[RandomPieceNum][i].first;
+            lrg = Gameboard[i].first;
         }
     }
     
@@ -94,11 +95,11 @@ int FindLargestY(vector< vector < pair<int, int> > > PiecePatterns, int RandomPi
 }
 
 
-void ErasePiece(vector< vector < pair<int, int> > > PiecePatterns, WINDOW *Gwin, int RandomPieceNum)        //erase piece when before moving
+void ErasePiece(vector < pair<int, int>> Gameboard, WINDOW *Gwin)        //erase piece when before moving
 {
-    for(int i = 0; i < PiecePatterns[RandomPieceNum].size(); i++)
+    for(int i = 0; i < Gameboard.size(); i++)
     {
-        mvwaddstr(Gwin, PiecePatterns[RandomPieceNum][i].first, PiecePatterns[RandomPieceNum][i].second, " ");
+        mvwaddstr(Gwin, Gameboard[i].first, Gameboard[i].second, " ");
     }
     wrefresh(Gwin);
     refresh();
@@ -106,11 +107,11 @@ void ErasePiece(vector< vector < pair<int, int> > > PiecePatterns, WINDOW *Gwin,
     return;
 }
 
-void DrawPiece(vector< vector < pair<int, int> > > PiecePatterns, WINDOW *Gwin, int RandomPieceNum)         //draw piece in new location
+void DrawPiece(vector< pair<int, int> > GameBoard, WINDOW *Gwin)         //draw piece in new location
 {
-    for(int j = 0; j < PiecePatterns[RandomPieceNum].size(); j++)
+    for(int j = 0; j < GameBoard.size(); j++)
     {
-        mvwaddstr(Gwin, PiecePatterns[RandomPieceNum][j].first, PiecePatterns[RandomPieceNum][j].second, "*");
+        mvwaddstr(Gwin, GameBoard[j].first, GameBoard[j].second, "*");
     }
     wrefresh(Gwin);
     refresh();
@@ -118,44 +119,57 @@ void DrawPiece(vector< vector < pair<int, int> > > PiecePatterns, WINDOW *Gwin, 
     return;
 }
 
-bool MoveDown(vector< vector < pair<int,int> > > & PiecePatterns, WINDOW *Gwin, int RandomPieceNum, int Gy)     //check if you can move down, if you can, erase, and draw, refresh board
+bool MoveDown( vector < pair<int,int> >  & Gameboard, WINDOW *Gwin, int Gy, bool GameTrack [GxSIZE][GySIZE])     //check if you can move down, if you can, erase, and draw, refresh board
 {
-    int lrg = FindLargestY(PiecePatterns,RandomPieceNum);
-    
-    if(lrg+1 < Gy-1)
+    int lrg = FindLargestY(Gameboard);
+    // for each coordinate in the gameTrack. If there's a piece underneath it, don't move down
+    bool BreakMoveDown = false;
+    for(int i = 0; i < Gameboard.size(); i++)
     {
-        ErasePiece(PiecePatterns, Gwin, RandomPieceNum);
-        for(int i = 0; i < PiecePatterns[RandomPieceNum].size(); i++)
+        if(GameTrack[Gameboard[i].second][Gameboard[i].first+1])
         {
-            PiecePatterns[RandomPieceNum][i].first++;
+            mvprintw(i+5, 0,"%d , %d", Gameboard[i].first, Gameboard[i].first+1);
+            BreakMoveDown = true;
         }
-        DrawPiece(PiecePatterns, Gwin, RandomPieceNum);
+    }
+    //if there's room for piece to fall then move down piece
+    if(lrg+1 < Gy-1 && !BreakMoveDown)
+    {
+        ErasePiece(Gameboard, Gwin);
+        for(int i = 0; i < Gameboard.size(); i++)
+        {
+            Gameboard[i].first++;
+        }
+        DrawPiece(Gameboard, Gwin);
         wrefresh(Gwin);
         refresh();
     }
     else
     {
-        return true;
+        return true;            //if true we want to break loop in main and go to next piece
     }
-    return false;
+    return false;               //if false we keep checking and falling
 }
 
-void MoveLeft(vector< vector < pair<int,int> > > & PiecePatterns, WINDOW *Gwin, int RandomPieceNum, int XPos)
+void MoveLeft(vector < pair<int,int> > & Gameboard, WINDOW *Gwin, int XPos, bool GameTrack [GxSIZE][GySIZE])
 {
-    XPos = FindSmallestX(PiecePatterns, RandomPieceNum);
-    mvprintw(3, 0, "Move Left, Xpos: ", XPos);
-    refresh();
-    
-    if(XPos-1 > 0)
+    XPos = FindSmallestX(Gameboard);
+    bool BreakMoveLeft = false;
+    for(int i = 0; i < Gameboard.size(); i++)
     {
-        mvprintw(3, 0, "if Move Left, Xpos: %d", XPos);
-        refresh();
-        ErasePiece(PiecePatterns, Gwin, RandomPieceNum);
-        for(int i = 0; i < PiecePatterns[RandomPieceNum].size(); i++)
+        if(GameTrack[Gameboard[i].second-1][Gameboard[i].first])
         {
-            PiecePatterns[RandomPieceNum][i].second--;
+            BreakMoveLeft = true;
         }
-        DrawPiece(PiecePatterns, Gwin, RandomPieceNum);
+    }
+    if(XPos-1 > 0 && !BreakMoveLeft)
+    {
+        ErasePiece(Gameboard, Gwin);
+        for(int i = 0; i < Gameboard.size(); i++)
+        {
+            Gameboard[i].second--;
+        }
+        DrawPiece(Gameboard, Gwin);
     }
     wrefresh(Gwin);
     refresh();
@@ -163,27 +177,33 @@ void MoveLeft(vector< vector < pair<int,int> > > & PiecePatterns, WINDOW *Gwin, 
     return;
 }
 
-void MoveRight(vector< vector< pair<int, int> > > & PiecePatterns, WINDOW *Gwin, int RandomPieceNum, int XPos, int Gx)
+void MoveRight(vector< pair<int, int> > & Gameboard, WINDOW *Gwin, int XPos, int Gx, bool GameTrack [GxSIZE][GySIZE])
 {
-    XPos = FindLargestX(PiecePatterns, RandomPieceNum);             //find coordinate that would reach end of gameboard first
-    mvprintw(3, 0, "Move Right, Xpos: %d", XPos);                   //comment
-    refresh();
-    if(XPos+1 < Gx-1)                                               //if largest coornidate is in range of game board then erase piece and draw it in new position
+    XPos = FindLargestX(Gameboard);             //find coordinate that would reach end of gameboard first
+    bool BreakMoveRight = false;
+    for(int i = 0; i < Gameboard.size(); i++)
+    {
+        if(GameTrack[Gameboard[i].second+1][Gameboard[i].first])
+        {
+            BreakMoveRight = true;
+        }
+    }
+    
+    if(XPos+1 < Gx-1 && !BreakMoveRight)                                               //if largest coornidate is in range of game board then erase piece and draw it in new position
     {
         mvprintw(3, 0, "if Move Right, Xpos: %d", XPos);            //comment
         refresh();
-        ErasePiece(PiecePatterns, Gwin, RandomPieceNum);
-        for(int i = 0; i < PiecePatterns[RandomPieceNum].size(); i++)
+        ErasePiece(Gameboard, Gwin);
+        for(int i = 0; i < Gameboard.size(); i++)
         {
-            PiecePatterns[RandomPieceNum][i].second++;
+            Gameboard[i].second++;
         }
-        DrawPiece(PiecePatterns, Gwin, RandomPieceNum);
+        DrawPiece(Gameboard, Gwin);
     }
     wrefresh(Gwin);
     refresh();
 }
 
-//void MoveDown(vector< vector< pair< int, int> > >)
 
 int main()
 {
@@ -199,32 +219,32 @@ int main()
     int XPos = 7;                                         //position of where to spawn piece on gameboard
     
     
-    //FOR BELOW! each piece has 2 sets of coordinates to be plotted on window
-    //vector< vector< pair< int, int> > > cannot be initialized (no constructor available) so individually push back
-    //plan to create another vector to hold possible rotations of pieces
-    
-    vector< vector< pair<int, int> > > PiecePatterns;
-    vector< vector< int > > GameBoard;
-    vector < pair<int, int> > Piece1 = {{1, XPos},{1, XPos+1},{2, XPos},{2, XPos+1}};
-    vector < pair<int, int> > Piece2 = {{1, XPos+1},{1, XPos+2},{2,XPos+1},{2, XPos}};
-    vector < pair<int, int> > Piece3 = {{1, XPos},{2, XPos},{3,XPos},{4,XPos}};
-    vector < pair<int, int> > Piece4 = {{1, XPos},{2, XPos-1}, {2, XPos}, {2, XPos+1}};
-    vector < pair<int, int> > Piece5 = {{1, XPos},{2, XPos},{2, XPos+1}, {2, XPos+2}};
-    vector < pair<int, int> > Piece6 = {{1, XPos},{1, XPos+1},{2, XPos+1}, {2, XPos+2}};
-    vector < pair<int, int> > Piece7 = {{1, XPos+2},{2,XPos+2},{2, XPos+1},{2, XPos}};
-    
-    PiecePatterns.push_back(Piece1);
-    PiecePatterns.push_back(Piece2);
-    PiecePatterns.push_back(Piece3);
-    PiecePatterns.push_back(Piece4);
-    PiecePatterns.push_back(Piece5);
-    PiecePatterns.push_back(Piece6);
-    PiecePatterns.push_back(Piece7);
+    //FOR BELOW! first vector is a vector of pairs. each pair has coordinates and each vector represents a piece. outer vector used to iterate through.
+    //we need to create a new instance of each piece so gameboard holds piece
+    //Game track keeps coordinates taken unlike Gameboard which just updates '*' and then forgets coordinates
+    vector< vector< pair<int, int> > > GameBoard;
+    bool GameTrack [GxSIZE][GySIZE];                                //true = spot used, false = open
+    for(int i = 0; i < GxSIZE; i++)
+    {
+        for(int j = 0; j < GySIZE; j++)
+        {
+            GameTrack[i][j] = false;
+        }
+    }
+    vector< vector< pair<int, int> > > PiecePatterns =
+    {
+        {{1, XPos},{1, XPos+1},{2, XPos},{2, XPos+1}},
+        {{1, XPos+1},{1, XPos+2},{2,XPos+1},{2, XPos}},
+        {{1, XPos},{2, XPos},{3,XPos},{4,XPos}},
+        {{1, XPos},{2, XPos-1}, {2, XPos}, {2, XPos+1}},
+        {{1, XPos},{2, XPos},{2, XPos+1}, {2, XPos+2}},
+        {{1, XPos},{1, XPos+1},{2, XPos+1}, {2, XPos+2}},
+        {{1, XPos+2},{2,XPos+2},{2, XPos+1},{2, XPos}}
+    };
     
     bool BrkToNewPiece = false;                            //once piece has fallen
     int KeyInput, Gx, Gy, RandomPieceNum;                  //Gx = Gameboard max X, Gy = Gameboard max Y
     int GameScore;                                         //keep track of user score
-    bool NewPiece;
     
     
     srand(time(NULL));                                                      //initiliaze random seed
@@ -232,7 +252,7 @@ int main()
     RandomPieceNum = rand()%7;                                              //pick random piece
     
     
-    WINDOW *Gwin = newwin(18, 15, 1, 25);                                   //create gameboard window made up of 2D array
+    WINDOW *Gwin = newwin(GySIZE, GxSIZE, 1, 30);                           //create gameboard window made up of 2D array
     box(Gwin, 0 , 0);                                                       //set borders
     WINDOW *Swin = newwin(10, 10, 5, 50);                                   //create scoreboard window
     box(Swin, 0, 0);                                                        //set borders
@@ -249,16 +269,17 @@ int main()
     wrefresh(Swin);
     do
     {
-        NewPiece = true;
         RandomPieceNum = rand()%7;
         
-        DrawPiece(PiecePatterns, Gwin, RandomPieceNum);                 //draw a new piece on board
+        GameBoard.push_back(PiecePatterns[RandomPieceNum]);
+        
+        DrawPiece(GameBoard.back(), Gwin);                              //draw a new piece on board
         wrefresh(Gwin);                                                 //refresh gameboard/update
         
         for (;;) {
             switch (KeyInput = getch()) {
                 case KEY_LEFT:              // left key
-                    MoveLeft(PiecePatterns, Gwin, RandomPieceNum, XPos);
+                    MoveLeft(GameBoard.back(), Gwin, XPos, GameTrack);
                     break;
                 case KEY_UP:                // user pressed up arrow key
                     
@@ -267,15 +288,22 @@ int main()
                     
                     break;
                 case KEY_RIGHT:             //user pressed right key
-                    MoveRight(PiecePatterns, Gwin, RandomPieceNum, XPos, Gx);
+                    MoveRight(GameBoard.back(), Gwin, XPos, Gx, GameTrack);
                     break;
                 case ERR:
                     this_thread::sleep_for (chrono::milliseconds(500));              //sleep for 1 second
-                    BrkToNewPiece = MoveDown(PiecePatterns, Gwin, RandomPieceNum, Gy);
+                    BrkToNewPiece = MoveDown(GameBoard.back(), Gwin, Gy, GameTrack);
                     break;
             }
             if(BrkToNewPiece)
+            {
+                for(int i = 0; i < GameBoard.back().size(); i++)
+                {
+                    mvprintw(4, 0,"%d    %d", GameBoard.back().at(i).second,GameBoard.back().at(i).first);
+                    GameTrack[GameBoard.back().at(i).second][GameBoard.back().at(i).first] = true;
+                }
                 break;
+            }
         }
         
         mvprintw(0, 5, "%d", RandomPieceNum);
@@ -289,36 +317,4 @@ int main()
     return 0;
 }
 
-/*
- 0 = square
- 
- 1 =  //zig zag face right
- 
- 2 = straight
- 
- 3 = //straight pnt mid
- 
- 4 =  straight pnt left
- 
- 5 =  zig zag face left
- 
- 6 = straight pnt right
- 
- */
-
-
-/*switch (KeyInput) {
- case KEY_LEFT:              // left key
- MoveLeft(PiecePatterns, Gwin, RandomPieceNum, XPos);
- break;
- case KEY_UP:                // user pressed up arrow key
- 
- break;
- case KEY_DOWN:              // user pressed up arrow key
- 
- break;
- case KEY_RIGHT:             //user pressed right key
- break;
- case ERR:
- break;
- }*/
+//UPDATE: GOT THE NEW PIECES TO WORK NOW WE HAVE TO CHECK IF SPOT TAKEN BEFORE MOVING PIECE DOWN EVERY STEP. USING GAMETRACK TO CHECK COORDINATES TAKEN IN MOVE DOWN. ALSO START FIGURING OUT HOW TO COUNT AND DELETE A ROW
